@@ -21,9 +21,10 @@ if (DATABASE_URL) {
     logging: false,
     native: false,
     pool: {
-      max: 3,
-      min: 1,
-      idle: 10000,
+      max: 1,
+      min: 0,
+      acquire: 3000,
+      idle: 0,
     },
     dialectOptions: {
       ssl:
@@ -33,6 +34,7 @@ if (DATABASE_URL) {
               rejectUnauthorized: false,
             }
           : false,
+      connectTimeout: 3000,
     },
   });
 } else if (process.env.NODE_ENV === "production") {
