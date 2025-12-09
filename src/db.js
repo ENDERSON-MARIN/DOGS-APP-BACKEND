@@ -2,6 +2,10 @@ require("dotenv").config();
 const { Sequelize } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
+
+// Importar pg explicitamente para garantir que está disponível
+const pg = require("pg");
+
 const { DB_USER, DB_PASSWORD, DB_HOST, DB_NAME, DB_PORT, DATABASE_URL } =
   process.env;
 
@@ -13,6 +17,7 @@ if (DATABASE_URL) {
   // Usa DATABASE_URL se disponível (NeonDB, Vercel, etc.)
   sequelize = new Sequelize(DATABASE_URL, {
     dialect: "postgres",
+    dialectModule: pg,
     logging: false,
     native: false,
     pool: {
@@ -35,6 +40,7 @@ if (DATABASE_URL) {
   sequelize = new Sequelize({
     database: DB_NAME,
     dialect: "postgres",
+    dialectModule: pg,
     host: DB_HOST,
     port: DB_PORT,
     username: DB_USER,
@@ -58,6 +64,8 @@ if (DATABASE_URL) {
   sequelize = new Sequelize(
     `postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME || "dogs_db"}`,
     {
+      dialect: "postgres",
+      dialectModule: pg,
       logging: false,
       native: false,
     }
