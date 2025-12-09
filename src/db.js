@@ -21,19 +21,17 @@ if (DATABASE_URL) {
     logging: false,
     native: false,
     pool: {
-      max: 2,
+      max: 3,
       min: 0,
-      acquire: 10000,
-      idle: 0,
+      acquire: 30000,
+      idle: 10000,
     },
     dialectOptions: {
       ssl: {
         require: true,
         rejectUnauthorized: false,
       },
-      connectTimeout: 10000,
-      statement_timeout: 10000,
-      query_timeout: 10000,
+      connectTimeout: 60000,
     },
     retry: {
       max: 3,

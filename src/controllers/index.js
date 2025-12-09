@@ -56,38 +56,38 @@ const getDogsDb = async () => {
       include: {
         model: Temperament,
         attributes: ["name"],
+        through: { attributes: [] }, // Evita trazer dados da tabela intermediária
       },
+      raw: false, // Necessário para includes
     });
 
-    const dogsWithTemperaments = dogsDb.map((d) => {
-      return {
-        id: d.dataValues.id,
-        name: d.dataValues.name,
-        height_min: d.dataValues.height_min,
-        height_max: d.dataValues.height_max,
-        weight_min: d.dataValues.weight_min,
-        weight_max: d.dataValues.weight_max,
-        years_life: d.dataValues.years_life,
-        image: d.dataValues.image,
-        temperaments: d.dataValues.temperaments
-          .map((t) => t.dataValues.name)
-          .join(", "),
-      };
-    });
+    // Usar destructuring e acesso direto para melhor performance
+    const dogsWithTemperaments = dogsDb.map((d) => ({
+      id: d.id,
+      name: d.name,
+      height_min: d.height_min,
+      height_max: d.height_max,
+      weight_min: d.weight_min,
+      weight_max: d.weight_max,
+      years_life: d.years_life,
+      image: d.image,
+      temperaments: d.temperaments.map((t) => t.name).join(", "),
+    }));
+
     return dogsWithTemperaments;
   } catch (error) {
-    console.log(error);
+    console.error("Error getting dogs from DB:", error.message);
+    throw error;
   }
 };
 
 /* GET ALL DOGS FROM API AND DB */
 const getAllDogs = async () => {
   try {
-    const dogsApi = await getDogsApi();
-    const dogsDb = await getDogsDb();
-    const allDogs = [...dogsApi, ...dogsDb];
-    // console.log( `all dogs = ${allDogs}`)
-    return allDogs;
+    // Executar ambas as queries em paralelo para melhor performance
+    const [dogsApi, dogsDb] = await Promise.all([getDogsApi(), getDogsDb()]);
+
+    return [...dogsApi, ...dogsDb];
   } catch (error) {
     console.error("Error getting all dogs:", error.message);
     throw error;
@@ -97,26 +97,46 @@ const getAllDogs = async () => {
 /* GET ALL TEMPERAMENTS */
 const getAllTemperaments = async () => {
   try {
+    // Verificar se já existem temperamentos no banco
+    const existingTemperaments = await Temperament.findAll();
+
+    // Se já existem temperamentos, retornar do cache
+    if (existingTemperaments.length > 0) {
+      return existingTemperaments;
+    }
+
+    // Buscar da API apenas se não houver dados no banco
     const dataApi = (
       await axios(`https://api.thedogapi.com/v1/breeds?api_key=${API_KEY}`)
     ).data;
-    let temperaments = dataApi.map((e) => e.temperament); //Los mapeo y devuelvo los temperamentos
 
-    let temperamentsArray = temperaments.join().split(","); //los une y convierte a array
+    // Processar temperamentos de forma otimizada
+    const uniqueTemperaments = dataApi
+      .map((e) => e.temperament)
+      .filter(Boolean) // Remove valores null/undefined
+      .join(",")
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0); // Remove strings vazias
 
-    temperamentsArray = temperamentsArray.map((t) => t.trim()).sort(); //los ordena
+    // Usar Set para remover duplicados
+    const temperamentsSet = [...new Set(uniqueTemperaments)];
 
-    const setTemperaments = new Set(temperamentsArray); //quita los duplicados
-
-    setTemperaments.forEach((temp) => {
-      if (temp.length > 0) {
-        Temperament.findOrCreate({
-          where: { name: temp },
-        });
+    // Bulk insert - muito mais rápido que findOrCreate individual
+    // Usar bulkCreate com ignoreDuplicates para evitar erros
+    await Temperament.bulkCreate(
+      temperamentsSet.map((name) => ({ name })),
+      {
+        ignoreDuplicates: true,
+        validate: true,
       }
+    );
+
+    // Retornar todos os temperamentos ordenados
+    const allTemperaments = await Temperament.findAll({
+      order: [["name", "ASC"]],
     });
 
-    const allTemperaments = await Temperament.findAll();
     return allTemperaments;
   } catch (error) {
     // Axios 1.x error handling pattern
