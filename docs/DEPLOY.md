@@ -7,7 +7,26 @@
 - [ ] Repositório no GitHub
 - [ ] API Key do [The Dog API](https://thedogapi.com/)
 
-## 📋 Passo a Passo
+## 📁 Estrutura do
+
+```
+d/
+├── api/
+│   └── index.js          # Entry pss)
+├── src/
+
+│   ├── db.js            Sequelize
+
+│   ├── models/
+outes/
+├── vercel.json          # Configuração Vercel
+├── package.json
+└── index.js             # Entry point
+```
+
+**Importante:** A pasta `api/` é necessária para o deploy na Vercel funcionar c.
+
+## 📋 Passo a Passoretamenteort)evelopmenocal (d l│ └── rers/roll│ ├── contração # Configussão Expreiguraç# Conf .js ├── app│el (Serverlercara Vent poiackenbProjeto
 
 ### 1️⃣ Configurar NeonDB
 
