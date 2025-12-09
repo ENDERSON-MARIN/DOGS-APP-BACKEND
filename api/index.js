@@ -2,18 +2,18 @@ require("dotenv").config();
 const app = require("../src/app.js");
 const { database } = require("../src/db.js");
 
-// Sincronizar banco de dados apenas uma vez
-let dbSynced = false;
+// Verificar conexão apenas uma vez (não fazer sync em produção)
+let dbConnected = false;
 
-const syncDatabase = async () => {
-  if (!dbSynced) {
+const checkDatabaseConnection = async () => {
+  if (!dbConnected && process.env.NODE_ENV === "production") {
     try {
-      await database.sync({ force: false });
-      console.log("Database synced successfully");
-      dbSynced = true;
+      await database.authenticate();
+      console.log("Database connection established successfully");
+      dbConnected = true;
     } catch (error) {
-      console.error("Error syncing database:", error);
-      throw error;
+      console.error("Unable to connect to database:", error);
+      // Não lançar erro, deixar a aplicação tentar conectar na próxima requisição
     }
   }
 };
@@ -21,7 +21,8 @@ const syncDatabase = async () => {
 // Handler para Vercel Serverless Functions
 module.exports = async (req, res) => {
   try {
-    await syncDatabase();
+    // Apenas verificar conexão, não fazer sync
+    await checkDatabaseConnection();
     return app(req, res);
   } catch (error) {
     console.error("Function error:", error);
